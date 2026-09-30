@@ -1,0 +1,36 @@
+import json
+from pathlib import Path
+
+DEFAULT_CONFIG = """\
+version: 1
+# What to evaluate. type: python | http | gateway
+target:
+  type: python
+  function: examples.demo_agent:run
+
+dataset: datasets/smoke.jsonl
+
+# A case passes only if ALL evaluators pass.
+evaluators:
+  - type: contains
+  - type: tool_calls
+  - type: safety_refusal
+  - type: no_pii
+  - type: latency
+    max_ms: 2000
+
+# CI gate. Exit code 2 if any threshold is violated.
+thresholds:
+  min_pass_rate: 0.90
+  max_p95_latency_ms: 2000
+  max_total_cost_usd: 0.05
+  max_regression: 0.05     # allowed pass-rate drop vs baseline
+"""
+
+
+def load_config(path):
+    text = Path(path).read_text(encoding="utf-8")
+    if str(path).endswith(".json"):
+        return json.loads(text)
+    import yaml
+    return yaml.safe_load(text)
