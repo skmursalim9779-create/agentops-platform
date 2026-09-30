@@ -4,7 +4,7 @@
 
 AgentOps provides an OpenAI-compatible gateway, trace instrumentation, cost tracking, policy enforcement, and CI-gated evaluations for AI agents. It uses a stdlib-first Python approach, runs fully offline with a built-in mock model, and can connect to an OpenAI-compatible provider when you are ready.
 
-> **Live demo:** [https://agentops-platform-4d6p.onrender.com](https://agentops-platform-4d6p.onrender.com)
+> **Live demo:** https://agentops-platform-4d6p.onrender.com
 
 ## Project status
 
@@ -20,14 +20,14 @@ AgentOps provides an OpenAI-compatible gateway, trace instrumentation, cost trac
 
 ## Architecture
 
-| Layer       | What it does                                                                                                                             | Inspired by                                       |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| **Gateway** | OpenAI-compatible proxy: traces every call, prices it, redacts PII, rate-limits, enforces a per-session budget, and detects prompt loops | AgentOps-AI (monitoring, cost)                    |
-| **Tracing** | `@aop.agent`, aop.tool, aop.llm, `@aop.operation` decorators, nested spans, SQLite store, dashboard                                      | AgentOps-AI (span decorators)                     |
-| **Evals**   | YAML config, JSONL datasets, 10 evaluators, baseline comparison, threshold gate (exit code 2), `results.json` + `report.md`              | Azure/agentops (eval/CI model)                    |
-| **Ops**     | `aop doctor` readiness checks, GitHub Actions generator, and trace-to-regression promotion                                               | Azure/agentops (Doctor, workflow, promote-traces) |
+| Layer | What it does | Inspired by |
+|---|---|---|
+| **Gateway** | OpenAI-compatible proxy: traces every call, prices it, redacts PII, rate-limits, enforces a per-session budget, and detects prompt loops | AgentOps-AI (monitoring, cost) |
+| **Tracing** | `@aop.agent`, `@aop.tool`, `@aop.llm`, `@aop.operation` decorators, nested spans, SQLite store, dashboard | AgentOps-AI (span decorators) |
+| **Evals** | YAML config, JSONL datasets, 10 evaluators, baseline comparison, threshold gate (exit code 2), `results.json` + `report.md` | Azure/agentops (eval/CI model) |
+| **Ops** | `aop doctor` readiness checks, GitHub Actions generator, and trace-to-regression promotion | Azure/agentops (Doctor, workflow, promote-traces) |
 
-The design was studied from two open-source MIT-licensed projects and then re-implemented from scratch. See [\`NOTICE.md\`](NOTICE.md) and [\`docs/RESEARCH.md\`](docs/RESEARCH.md).
+The design was studied from two open-source MIT-licensed projects and then re-implemented from scratch. See [`NOTICE.md`](NOTICE.md) and [`docs/RESEARCH.md`](docs/RESEARCH.md).
 
 ## Key capabilities
 
@@ -49,16 +49,20 @@ The design was studied from two open-source MIT-licensed projects and then re-im
 
 Instrument your agent with decorators and nested spans:
 
+```python
 import aop
+
 @aop.tool("search")
 def search(q):
     ...
+
 @aop.agent("researcher")
 def run(prompt):
     with aop.get_tracer().span("llm:gpt-4o-mini", kind="llm") as sp:
         text = call_model(prompt)
         sp.set_usage("gpt-4o-mini", tokens_in, tokens_out)
     return text
+```
 
 Async functions are supported. Errors are recorded on the span and re-raised.
 
@@ -66,40 +70,51 @@ The dashboard exposes aggregate trace, token, cost, model, latency, and error in
 
 ## Quick start
 
+```bash
 pip install -e .
+
 aop doctor
 aop demo
 aop traces
 aop eval run
 aop gateway
+```
 
 The default local gateway runs at:
 
+```text
 http://127.0.0.1:8787
+```
 
 The dashboard is available at `/`.
 
 ## Calling the gateway
 
-curl http://127.0.0.1:8787/v1/chat/completions 
-  -H 'content-type: application/json' 
-  -H 'x-aop-session: demo1' 
-  -H 'x-aop-agent: my-agent' 
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H 'content-type: application/json' \
+  -H 'x-aop-session: demo1' \
+  -H 'x-aop-agent: my-agent' \
   -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"What is 6 x 7?"}]}'
+```
 
 Responses include the following headers:
 
+```text
 x-aop-trace-id
 x-aop-cost-usd
+```
 
 ### Real provider
 
 The gateway can point to an OpenAI-compatible upstream:
 
-AOP_UPSTREAM_API_KEY=sk-... 
-aop gateway 
-  --provider openai 
+```bash
+AOP_UPSTREAM_API_KEY=sk-... \
+aop gateway \
+  --provider openai \
   --upstream https://api.openai.com/v1/chat/completions
+```
 
 Do not commit provider API keys or other secrets to the repository.
 
@@ -107,8 +122,10 @@ Do not commit provider API keys or other secrets to the repository.
 
 When `AOP_API_KEY` is configured, the gateway and protected `/api/*` endpoints require the `x-aop-key` header:
 
-curl http://127.0.0.1:8787/api/stats 
+```bash
+curl http://127.0.0.1:8787/api/stats \
   -H 'x-aop-key: YOUR_AOP_API_KEY'
+```
 
 For local development, authentication remains optional when `AOP_API_KEY` is not configured.
 
@@ -118,11 +135,15 @@ For local development, authentication remains optional when `AOP_API_KEY` is not
 2. `aop eval run` writes `.aop/results/latest/results.json` and `report.md`.
 3. Save a baseline:
 
+```bash
 cp .aop/results/latest/results.json .aop/baseline/results.json
+```
 
 4. Run against the baseline:
 
+```bash
 aop eval run --baseline .aop/baseline/results.json
+```
 
 5. `aop workflow` writes a GitHub Actions workflow that runs the evaluation flow on pull requests.
 
@@ -136,6 +157,7 @@ Supported target types:
 
 ### Evaluators
 
+```text
 exact_match
 contains
 regex
@@ -146,6 +168,7 @@ tool_calls
 safety_refusal
 no_pii
 python
+```
 
 The `python` evaluator supports your own function using `function: pkg.mod:fn`.
 
@@ -153,7 +176,9 @@ The `python` evaluator supports your own function using `function: pkg.mod:fn`.
 
 Turn real traces into regression cases:
 
+```bash
 aop eval promote-traces
+```
 
 Review generated `expected` values before using them as a regression baseline. They are previous model outputs, not independent ground truth.
 
@@ -161,6 +186,7 @@ Review generated `expected` values before using them as a regression baseline. T
 
 AgentOps includes multiple protections around LLM requests and agent execution:
 
+```text
 PII redaction
 API authentication
 Request schema validation
@@ -170,6 +196,7 @@ Prompt loop detection
 Per-session budget enforcement
 Pre-request estimated-cost checks
 Error/status tracing
+```
 
 These controls are designed to reduce accidental data exposure, runaway requests, repeated-agent loops, and uncontrolled model spending.
 
@@ -179,27 +206,37 @@ These controls are designed to reduce accidental data exposure, runaway requests
 
 Provider pricing changes over time, so configure your own pricing file before relying on cost figures:
 
+```bash
 AOP_PRICING_FILE=pricing.json
+```
 
 Example:
 
+```json
 {
   "gpt-4o-mini": [0.15, 0.60]
 }
+```
 
 Values are USD per 1 million tokens in the order:
 
+```text
 [input_price, output_price]
+```
 
 ## Dashboard
 
 Start the gateway:
 
+```bash
 aop gateway --host 127.0.0.1 --port 8787
+```
 
 Open:
 
+```text
 http://127.0.0.1:8787/
+```
 
 The dashboard provides:
 
@@ -216,17 +253,22 @@ The dashboard provides:
 
 Run the full test suite:
 
+```bash
 python -m unittest discover -s tests -v
+```
 
 Current verification:
 
+```text
 26 tests
 26 passed
 0 failed
 0 errors
+```
 
 ## Repository structure
 
+```text
 agentops-platform/
 ├── .github/
 │   └── workflows/
@@ -253,14 +295,15 @@ agentops-platform/
 ├── LICENSE
 ├── NOTICE.md
 └── README.md
+```
 
 ## Research and design notes
 
 See:
 
-- [\`docs/ARCHITECTURE.md\`](docs/ARCHITECTURE.md)
-- [\`docs/RESEARCH.md\`](docs/RESEARCH.md)
-- [\`NOTICE.md\`](NOTICE.md)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- [`docs/RESEARCH.md`](docs/RESEARCH.md)
+- [`NOTICE.md`](NOTICE.md)
 
 The repository documents which ideas were studied and which implementation was built from scratch.
 
@@ -275,4 +318,4 @@ The repository documents which ideas were studied and which implementation was b
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [`LICENSE`](LICENSE).
