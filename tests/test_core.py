@@ -395,6 +395,29 @@ class GatewayTests(unittest.TestCase):
             ).read(),
         )
 
+    def test_security_headers_present(self):
+        resp = urllib.request.urlopen(self.url + "/health")
+        self.assertEqual(
+            resp.headers["X-Content-Type-Options"],
+            "nosniff",
+        )
+        self.assertEqual(
+            resp.headers["X-Frame-Options"],
+            "DENY",
+        )
+        self.assertEqual(
+            resp.headers["Referrer-Policy"],
+            "no-referrer",
+        )
+        self.assertEqual(
+            resp.headers["Permissions-Policy"],
+            "camera=(), microphone=(), geolocation=()",
+        )
+        self.assertEqual(
+            resp.headers["Cache-Control"],
+            "no-store",
+        )
+
     def test_auth_missing_key_rejected(self):
         old_key = os.environ.get(
             "AOP_API_KEY"
