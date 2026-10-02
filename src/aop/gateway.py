@@ -2,6 +2,7 @@
 
 
 
+import hashlib
 import hmac
 
 
@@ -87,6 +88,10 @@ class GatewayConfig:
 
 
     api_key_env: str = "AOP_API_KEY"
+
+
+
+    api_keys_env: str = "AOP_API_KEYS"
 
 
 
@@ -186,77 +191,99 @@ class Gateway:
 
 
 
-    def _check_api_key(self, provided_key):
+    def _configured_key_owners(self):
+        raw = os.environ.get(
+            self.config.api_keys_env,
+            "",
+        ).strip()
 
+        if not raw:
+            return None
 
+        try:
+            data = json.loads(raw)
+        except (TypeError, ValueError):
+            return {}
+
+        if not isinstance(data, dict):
+            return {}
+
+        return {
+            str(key): str(owner)
+            for key, owner in data.items()
+            if str(key) and str(owner)
+        }
+
+    def _provided_api_key(self, headers):
+        key = headers.get("x-aop-key")
+        if key:
+            return key
+
+        authorization = (
+            headers.get("authorization")
+            or headers.get("Authorization")
+            or ""
+        )
+
+        scheme, _, value = authorization.partition(" ")
+
+        if scheme.lower() == "bearer" and value:
+            return value.strip()
+
+        return None
+
+    def _authenticate(self, provided_key):
+        owners = self._configured_key_owners()
+
+        # AOP_API_KEYS is the production multi-user boundary.
+        if owners is not None:
+            if not provided_key:
+                return None
+
+            for configured_key, owner_id in owners.items():
+                if hmac.compare_digest(
+                    provided_key,
+                    configured_key,
+                ):
+                    return owner_id
+
+            return None
 
         configured_key = os.environ.get(
-
-
-
             self.config.api_key_env,
-
-
-
             "",
-
-
-
         )
-
-
 
         # Keep the anonymous public demo available only for mock.
-
-
-
         if not configured_key:
-
-
-
-            return self.config.provider == "mock"
-
-
+            if self.config.provider == "mock":
+                return "public"
+            return None
 
         if not provided_key:
+            return None
 
-
-
-            return False
-
-
-
-        return hmac.compare_digest(
-
-
-
+        if not hmac.compare_digest(
             provided_key,
-
-
-
             configured_key,
+        ):
+            return None
 
+        # A single legacy API key authenticates the request but does not
+        # pretend to identify a human user. Multi-user deployments should
+        # use AOP_API_KEYS with one key per user/tenant.
+        fingerprint = hashlib.sha256(
+            provided_key.encode("utf-8")
+        ).hexdigest()[:16]
+        return f"key:{fingerprint}"
 
-
-        )
-
-
+    def _check_api_key(self, provided_key):
+        return self._authenticate(provided_key) is not None
 
     def _get_owner_id(self, headers):
-
-
-
-        return headers.get(
-
-
-
-            self.config.owner_header,
-
-
-
+        return self._authenticate(
+            self._provided_api_key(headers)
         ) or "public"
-
-
 
     # -- provider -----------------------------------------------------
 
