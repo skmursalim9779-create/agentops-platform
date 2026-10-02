@@ -90,6 +90,10 @@ class GatewayConfig:
 
 
 
+    owner_header: str = "X-AOP-User-ID"
+
+
+
     redact_pii: bool = True
 
 
@@ -184,11 +188,19 @@ class Gateway:
 
     def _check_api_key(self, provided_key):
 
+
+
         configured_key = os.environ.get(
+
+
 
             self.config.api_key_env,
 
+
+
             "",
+
+
 
         )
 
@@ -196,7 +208,11 @@ class Gateway:
 
         # Keep the anonymous public demo available only for mock.
 
+
+
         if not configured_key:
+
+
 
             return self.config.provider == "mock"
 
@@ -204,17 +220,41 @@ class Gateway:
 
         if not provided_key:
 
+
+
             return False
 
 
 
         return hmac.compare_digest(
 
+
+
             provided_key,
+
+
 
             configured_key,
 
+
+
         )
+
+
+
+    def _get_owner_id(self, headers):
+
+
+
+        return headers.get(
+
+
+
+            self.config.owner_header,
+
+
+
+        ) or "public"
 
 
 
@@ -1120,7 +1160,9 @@ class Gateway:
 
         )
 
-        owner_id = headers.get("x-aop-key") or "public"
+
+
+        owner_id = self._get_owner_id(headers)
 
 
 
@@ -1198,7 +1240,9 @@ class Gateway:
 
         # Strict session budget check
 
-        owner_id = headers.get("x-aop-key") or "public"
+
+
+        owner_id = self._get_owner_id(headers)
 
 
 
@@ -1207,6 +1251,8 @@ class Gateway:
 
 
             trace_id,
+
+
 
             owner_id,
 
@@ -1522,7 +1568,9 @@ class Gateway:
 
             "trace_id": trace_id,
 
-            "owner_id": headers.get("x-aop-key") or "public",
+
+
+            "owner_id": owner_id,
 
 
 
@@ -2152,17 +2200,31 @@ def make_server(
 
             self.send_header("X-Content-Type-Options", "nosniff")
 
+
+
             self.send_header("X-Frame-Options", "DENY")
+
+
 
             self.send_header("Referrer-Policy", "no-referrer")
 
+
+
             self.send_header(
+
+
 
                 "Permissions-Policy",
 
+
+
                 "camera=(), microphone=(), geolocation=()",
 
+
+
             )
+
+
 
             self.send_header("Cache-Control", "no-store")
 
@@ -2382,25 +2444,39 @@ def make_server(
 
             elif path == "/api/stats":
 
+
+
                 headers = {
+
+
 
                     key.lower(): value
 
+
+
                     for key, value in self.headers.items()
+
+
 
                 }
 
 
 
-                owner_id = headers.get("x-aop-key") or "public"
+                owner_id = gw._get_owner_id(headers)
 
 
 
                 self._send(
 
+
+
                     200,
 
+
+
                     gw.store.stats(owner_id),
+
+
 
                 )
 
@@ -2408,25 +2484,39 @@ def make_server(
 
             elif path == "/api/traces":
 
+
+
                 headers = {
+
+
 
                     key.lower(): value
 
+
+
                     for key, value in self.headers.items()
+
+
 
                 }
 
 
 
-                owner_id = headers.get("x-aop-key") or "public"
+                owner_id = gw._get_owner_id(headers)
 
 
 
                 self._send(
 
+
+
                     200,
 
+
+
                     gw.store.traces(owner_id=owner_id),
+
+
 
                 )
 
@@ -2434,47 +2524,91 @@ def make_server(
 
             elif path.startswith(
 
+
+
                 "/api/traces/"
+
+
 
             ):
 
+
+
                 headers = {
+
+
 
                     key.lower(): value
 
+
+
                     for key, value in self.headers.items()
+
+
 
                 }
 
-                owner_id = headers.get("x-aop-key") or "public"
+
+
+                owner_id = gw._get_owner_id(headers)
+
+
 
                 spans = gw.store.trace(
 
+
+
                     path.rsplit(
+
+
 
                         "/",
 
+
+
                         1,
+
+
 
                     )[1],
 
+
+
                     owner_id,
 
+
+
                 )
+
+
 
                 self._send(
 
+
+
                     200 if spans else 404,
+
+
 
                     spans
 
+
+
                     or {
+
+
 
                         "error": "not found"
 
+
+
                     },
 
+
+
                 )
+
+
 
             else:
 
