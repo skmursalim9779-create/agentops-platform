@@ -880,7 +880,111 @@ class GatewayTests(unittest.TestCase):
             ctx.exception.code,
             413,
         )
+    def test_rate_limit_rejects_excess_requests(self):
+        gateway = Gateway(
+            GatewayConfig(
+                rate_limit_per_minute=1,
+                loop_threshold=99,
+            ),
+            SpanStore(":memory:"),
+        )
 
+        server = make_server(
+            "127.0.0.1",
+            0,
+            gateway,
+        )
+
+        thread = threading.Thread(
+            target=server.serve_forever,
+            daemon=True,
+        )
+        thread.start()
+
+        try:
+            url = (
+                f"http://127.0.0.1:"
+                f"{server.server_address[1]}"
+            )
+
+            def post_request():
+                body = {
+                    "model": "mock-1",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": "rate-limit-test",
+                        }
+                    ],
+                }
+
+                raw = json.dumps(body).encode()
+
+                req = urllib.request.Request(
+                    url + "/v1/chat/completions",
+                    data=raw,
+                    headers={
+                        "Content-Type": "application/json",
+                    },
+                )
+
+                return urllib.request.urlopen(req)
+
+            first = post_request()
+            self.assertEqual(first.status, 200)
+
+            with self.assertRaises(
+                urllib.error.HTTPError
+            ) as ctx:
+                post_request()
+
+            self.assertEqual(
+                ctx.exception.code,
+                429,
+            )
+
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+
+    def test_health_endpoint_is_available(self):
+        response = urllib.request.urlopen(
+            self.url + "/health"
+        )
+
+        self.assertEqual(
+            response.status,
+            200,
+        )
+
+        data = json.loads(
+            response.read()
+        )
+
+        self.assertEqual(
+            data["status"],
+            "ok",
+        )
+
+
+    def test_public_dashboard_does_not_require_api_key(self):
+        response = urllib.request.urlopen(
+            self.url + "/"
+        )
+
+        self.assertEqual(
+            response.status,
+            200,
+        )
+
+        body = response.read()
+
+        self.assertIn(
+            b"AgentOps",
+            body,
+        )
 
 class EvalTests(unittest.TestCase):
     def _config(self, **over):
