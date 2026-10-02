@@ -6,6 +6,7 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+import sys
 
 from aop.evals.runner import compare, evaluate_gate, load_dataset, run_eval
 from aop.gateway import Gateway, GatewayConfig, make_server
@@ -14,8 +15,9 @@ from aop.pricing import cost_usd
 from aop.store import SpanStore
 from aop.tracing import Tracer
 
-
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 class TracingTests(unittest.TestCase):
