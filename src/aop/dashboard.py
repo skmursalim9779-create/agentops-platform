@@ -13,8 +13,8 @@ DASHBOARD_HTML = """<!doctype html>
   --border:#272c37;
   --text:#f2f4f8;
   --muted:#98a1b2;
-  --accent:#60a5fa;
-  --accent2:#818cf8;
+  --accent:#c2411a;
+  --accent2:#e05a24;
   --success:#34d399;
   --danger:#f87171;
   --shadow:0 20px 60px rgba(0,0,0,.25);
@@ -31,8 +31,8 @@ html{
 body{
   margin:0;
   background:
-    radial-gradient(circle at 15% 10%,rgba(96,165,250,.10),transparent 28%),
-    radial-gradient(circle at 85% 15%,rgba(129,140,248,.08),transparent 25%),
+    radial-gradient(circle at 15% 10%,rgba(194,65,26,.10),transparent 28%),
+    radial-gradient(circle at 85% 15%,rgba(224,90,36,.08),transparent 25%),
     var(--bg);
   color:var(--text);
   font:14px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -217,7 +217,7 @@ button:disabled{
 }
 
 .hero h1 span{
-  background:linear-gradient(135deg,#93c5fd,#818cf8);
+  background:linear-gradient(135deg,#f08a5b,#e05a24);
   -webkit-background-clip:text;
   background-clip:text;
   color:transparent;
@@ -436,7 +436,7 @@ button:disabled{
 .field textarea:focus,
 .field select:focus{
   border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(96,165,250,.12);
+  box-shadow:0 0 0 3px rgba(194,65,26,.12);
 }
 
 .field textarea{
@@ -675,6 +675,166 @@ tr.t:hover{
     align-items:flex-start;
     flex-direction:column;
   }
+}
+
+/* AgentOps Deep Orange Motion */
+
+@keyframes aopNavIn {
+  from { opacity:0; transform:translateY(-18px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+@keyframes aopHeroIn {
+  from { opacity:0; transform:translateY(28px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+@keyframes aopHeroCardIn {
+  from { opacity:0; transform:translateX(35px) scale(.97); }
+  to { opacity:1; transform:translateX(0) scale(1); }
+}
+
+@keyframes aopOrangeGlow {
+  0%,100% { box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  50% { box-shadow:0 0 35px rgba(194,65,26,.14),0 25px 70px rgba(0,0,0,.32); }
+}
+
+.topbar {
+  animation:aopNavIn .7s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.hero > div:first-child {
+  animation:aopHeroIn .8s cubic-bezier(.2,.8,.2,1) .1s both;
+}
+
+.hero-card {
+  animation:
+    aopHeroCardIn .9s cubic-bezier(.2,.8,.2,1) .18s both,
+    aopOrangeGlow 4s ease-in-out 1.2s infinite;
+}
+
+.hero-card:hover {
+  transform:translateY(-5px);
+  border-color:rgba(194,65,26,.5);
+}
+
+.primary,
+.secondary,
+.nav-btn,
+.nav-cta {
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;
+}
+
+.primary:hover,
+.nav-cta:hover {
+  transform:translateY(-3px);
+  box-shadow:0 10px 30px rgba(194,65,26,.25);
+}
+
+.secondary:hover,
+.nav-btn:hover {
+  transform:translateY(-2px);
+}
+
+.feature-card {
+  transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;
+}
+
+.feature-card:hover {
+  transform:translateY(-7px);
+  border-color:rgba(194,65,26,.42);
+  box-shadow:0 18px 50px rgba(0,0,0,.28),0 0 28px rgba(194,65,26,.08);
+}
+
+.feature-icon {
+  transition:transform .3s ease,box-shadow .3s ease;
+}
+
+.feature-card:hover .feature-icon {
+  transform:scale(1.08) rotate(-3deg);
+}
+
+.status-dot {
+  animation:aopOrangeGlow 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion:reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}
+
+/* ===== AgentOps Live Status Glow ===== */
+
+@keyframes aopLivePulse {
+  0%, 100% {
+    opacity: .78;
+    box-shadow:
+      0 0 0 0 rgba(34,197,94,.30),
+      0 0 6px rgba(34,197,94,.30);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 6px rgba(34,197,94,0),
+      0 0 18px rgba(34,197,94,.75),
+      0 0 32px rgba(34,197,94,.25);
+  }
+}
+
+.status-dot {
+  background: #22c55e !important;
+  animation: aopLivePulse 2s ease-in-out infinite !important;
+}
+
+.hero-badge .status-dot {
+  box-shadow: 0 0 8px rgba(34,197,94,.45);
+}
+
+/* ===== Strong Live Green Glow ===== */
+
+@keyframes aopLivePulse {
+  0%, 100% {
+    opacity: .9;
+    transform: scale(1);
+    box-shadow:
+      0 0 5px rgba(34,197,94,.9),
+      0 0 14px rgba(34,197,94,.75),
+      0 0 28px rgba(34,197,94,.45),
+      0 0 45px rgba(34,197,94,.20);
+    filter: brightness(1.15);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+    box-shadow:
+      0 0 8px rgba(34,197,94,1),
+      0 0 22px rgba(34,197,94,.95),
+      0 0 42px rgba(34,197,94,.75),
+      0 0 70px rgba(34,197,94,.40);
+    filter: brightness(1.45);
+  }
+}
+
+.status-dot {
+  background: #22c55e !important;
+  animation: aopLivePulse 1.8s ease-in-out infinite !important;
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-badge .status-dot {
+  box-shadow:
+    0 0 8px rgba(34,197,94,.9),
+    0 0 22px rgba(34,197,94,.65),
+    0 0 40px rgba(34,197,94,.35);
 }
 </style>
 </head>
