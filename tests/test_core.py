@@ -1181,3 +1181,68 @@ class EvalTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+def test_owner_isolation():
+    from aop.store import SpanStore
+
+    store = SpanStore(":memory:")
+
+    store.save(
+        {
+            "span_id": "span-a",
+            "trace_id": "trace-a",
+            "owner_id": "owner-a",
+            "name": "agent-a",
+            "kind": "agent",
+            "start_ts": 1.0,
+            "end_ts": 2.0,
+            "status": "ok",
+            "model": None,
+            "tokens_in": 10,
+            "tokens_out": 20,
+            "cost_usd": 0.10,
+            "input": None,
+            "output": None,
+            "attrs": {},
+            "error": None,
+        }
+    )
+
+    store.save(
+        {
+            "span_id": "span-b",
+            "trace_id": "trace-b",
+            "owner_id": "owner-b",
+            "name": "agent-b",
+            "kind": "agent",
+            "start_ts": 3.0,
+            "end_ts": 4.0,
+            "status": "ok",
+            "model": None,
+            "tokens_in": 30,
+            "tokens_out": 40,
+            "cost_usd": 0.20,
+            "input": None,
+            "output": None,
+            "attrs": {},
+            "error": None,
+        }
+    )
+
+    assert [row["trace_id"] for row in store.traces(owner_id="owner-a")] == [
+        "trace-a"
+    ]
+
+    assert [row["trace_id"] for row in store.traces(owner_id="owner-b")] == [
+        "trace-b"
+    ]
+
+    assert store.trace("trace-a", "owner-b") == []
+    assert store.trace("trace-b", "owner-a") == []
+
+    assert store.trace_cost("trace-a", "owner-a") == 0.10
+    assert store.trace_cost("trace-a", "owner-b") == 0
+
+    assert store.stats("owner-a")["totals"]["traces"] == 1
+    assert store.stats("owner-b")["totals"]["traces"] == 1
+
+    store.close()
