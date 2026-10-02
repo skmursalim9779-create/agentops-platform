@@ -88,36 +88,24 @@ class Gateway:
 
         )
 
-    # -- authentication -----------------------------------------------
+        # -- authentication -----------------------------------------------
 
     def _check_api_key(self, provided_key):
-
         configured_key = os.environ.get(
-
             self.config.api_key_env,
-
             "",
-
         )
 
-        # Keep local development usable when no API key
-
-        # is configured.
-
+        # Keep the anonymous public demo available only for mock.
         if not configured_key:
-
-            return True
+            return self.config.provider == "mock"
 
         if not provided_key:
-
             return False
 
         return hmac.compare_digest(
-
             provided_key,
-
             configured_key,
-
         )
 
     # -- provider -----------------------------------------------------
