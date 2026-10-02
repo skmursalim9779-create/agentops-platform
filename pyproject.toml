@@ -9,7 +9,10 @@ description = "Gateway, tracing, cost tracking and CI-gated evals for AI agents"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-dependencies = ["PyYAML>=6.0"]
+dependencies = [
+    "PyYAML>=6.0",
+    "psycopg[binary]>=3.2,<4"
+]
 
 [project.scripts]
 aop = "aop.cli:main"
