@@ -16,6 +16,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS spans (
   span_id TEXT PRIMARY KEY,
   trace_id TEXT NOT NULL,
+  owner_id TEXT NOT NULL DEFAULT 'public',
   parent_id TEXT,
   name TEXT,
   kind TEXT,
@@ -43,6 +44,7 @@ ON spans(start_ts);
 COLUMNS = [
     "span_id",
     "trace_id",
+    "owner_id",
     "parent_id",
     "name",
     "kind",
@@ -101,6 +103,21 @@ class SpanStore:
     def _init_sqlite(self):
         with self._lock:
             self._conn.executescript(SCHEMA)
+            columns = {
+                row[1]
+                for row in self._conn.execute(
+                    "PRAGMA table_info(spans)"
+                ).fetchall()
+            }
+
+            if "owner_id" not in columns:
+                self._conn.execute(
+                    """
+                    ALTER TABLE spans
+                    ADD COLUMN owner_id TEXT NOT NULL DEFAULT 'public'
+                    """
+                )
+
             self._conn.commit()
 
     def _init_postgres(self):
